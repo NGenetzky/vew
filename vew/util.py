@@ -2,8 +2,10 @@ import os
 import yaml
 import logging.config
 import logging
+import pkg_resources
 
 PACKAGE_NAME = 'vew'
+PACKAGE_REQUIREMENT = pkg_resources.Requirement('vew')
 DEFAULT_LOG_CFG = '~/.config/{}/logging.yaml'.format(PACKAGE_NAME)
 
 
