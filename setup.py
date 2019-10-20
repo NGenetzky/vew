@@ -65,4 +65,12 @@ setup(
         # 'virtualenvwrapper.pre_activate': ['vew = vew.__main__:stub'],
     },
     include_package_data=True,
+
+    data_files=[
+        ( 'share/vew/hugo_config', [
+            'data/hugo_config/config.toml',
+            'data/hugo_config/menus.toml',
+            'data/hugo_config/params.toml',
+        ]),
+    ]
 )
