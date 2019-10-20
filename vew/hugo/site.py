@@ -10,6 +10,15 @@ DATA_FILES = {
     'hugo_config': 'share/vew/hugo_config'
 }
 
+CONTENT_TEMPLATE = {
+    'home/index.md': '''\
+---
+type: "widget_page"
+headless: true
+---
+'''
+}
+
 
 class HugoSite(object):
     def __init__(self, root=None):
@@ -30,3 +39,15 @@ class HugoSite(object):
             for filename in os.listdir(self.path['hugo_config']):
                 shutil.copy2(os.path.join(
                     self.path['hugo_config'], filename), configdir)
+
+        contenthomedir = os.path.join(self.path['root'], 'content', 'home')
+        if not os.path.isdir(contenthomedir):
+            os.makedirs(contenthomedir)
+
+        contenthomefiles = ['home/index.md']
+        for path in contenthomefiles:
+            if os.path.isfile(contenthomedir):
+                continue
+            cpath = os.path.join(self.path['root'], 'content', path)
+            with open(cpath, 'w+') as cfile:
+                cfile.write(CONTENT_TEMPLATE[path])
