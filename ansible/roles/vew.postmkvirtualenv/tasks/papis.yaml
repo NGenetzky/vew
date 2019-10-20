@@ -1,0 +1,23 @@
+---
+- name: Create directories for papis
+  file:
+    path: '{{ VEW_DIR }}/{{ item }}'
+    state: directory
+    recurse: yes
+  loop:
+    # Special libraries:
+    - 'library/default'
+    # libraries:
+    - 'library/archive'
+    - 'library/doc'
+    - 'library/note'
+    - 'library/workspace'
+    # config:
+    - 'config/papis/'
+
+- name: 'Papis config'
+  template:
+    dest: '{{ VEW_DIR }}/config/papis/papis.config'
+    src: papis.conf.j2
+  vars:
+    papis_library_root: './.vew/'

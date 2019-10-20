@@ -1,0 +1,20 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: "postmkvirtualenv"
+  hosts: all
+
+  pre_tasks:
+
+  - name: Load environment variables
+    set_fact:
+      # VIRTUAL_ENV: '{{ ansible_env.VIRTUAL_ENV }}' # for target
+      VIRTUAL_ENV: '{{ lookup("env", "VIRTUAL_ENV") }}'
+      VEW_DIR: '{{ lookup("env", "VEW_DIR") }}'
+
+  - assert:
+      that:
+        - VIRTUAL_ENV != ""
+        - VEW_DIR != ""
+
+  roles:
+  - 'vew.postmkvirtualenv'
