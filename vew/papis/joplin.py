@@ -14,7 +14,24 @@ import papis.commands.add
 
 from vew.util import logging_setup, PACKAGE_NAME
 
-LOG = logging.getLogger('{}.papis.joplin'.format(PACKAGE_NAME))
+LOG = logging.getLogger(__name__)
+
+_TYPE_NOTE = 1
+_TYPE_TO_STR = {
+    _TYPE_NOTE: 'note',
+}
+
+
+def _papis_config_from_data(data):
+    config = {}
+    joplin_type = data.get('joplin_type_', None)
+    if joplin_type in _TYPE_TO_STR:
+        config['file-name'] = '{}'.format(
+            _TYPE_TO_STR[joplin_type]
+        )
+    if 'uuid' in data:
+        config['add-name'] = '{doc[uuid]}'
+    return config
 
 
 def _papis_add_dryrun(**kwargs):
@@ -32,11 +49,15 @@ def joplin_data_filter(data_out, data_in):
     if author != '':
         data_out['author'] = author
 
-    data_out['author'] = data_in['title']
     data_out['date'] = _joplin_time_to_date(
         data_in['user_created_time']
     )
     data_out['uuid'] = data_in['id']
+
+    joplin_type = int(data_in['type_'])
+    if joplin_type in _TYPE_TO_STR:
+        data_out['joplin_type_str'] = _TYPE_TO_STR[joplin_type]
+
     prefix = 'joplin_'
     for key in ['id', 'parent_id', 'type_', 'user_created_time', 'user_updated_time']:
         data_out[prefix + key] = data_in[key]
@@ -72,7 +93,7 @@ def add(
     logging_setup()
     # LOG.info(kwargs)
 
-    dryrun = True
+    dryrun = False
     papis_add = papis.commands.add.cli.bypassed
     if dryrun:
         papis_add = _papis_add_dryrun
@@ -83,18 +104,24 @@ def add(
         data[data_set[0]] = data_set[1]
 
     for doc_file in files:
-        doc_files = [doc_file]
+        doc_args = dict(kwargs)
+        doc_args['files'] = [doc_file]
         doc_data = joplin_data(data, doc_file)
 
-        doc_set_list = []
+        doc_args['set_list'] = []
         for key in doc_data:
-            doc_set_list.append((key, doc_data[key]))
+            doc_args['set_list'].append((key, doc_data[key]))
 
-        papis_add(
-            files=doc_files,
-            set_list=doc_set_list,
-            **kwargs
-        )
+        doc_config = _papis_config_from_data(doc_data)
+        config_to_arg = {
+            'file-name': 'file_name',
+            'add-name': 'name',
+        }
+        for c, a in config_to_arg.items():
+            if c in doc_config:
+                doc_args[a] = doc_config[c]
+
+        papis_add(**doc_args)
 
 
 def _main():
