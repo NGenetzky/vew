@@ -51,6 +51,8 @@ setup(
             'vew = vew.__main__:main',
             'vew_hugo = vew.hugo.__main__:main',
             'vew_papis = vew.papis.__main__:cli',
+            # vew.papis has plugins for papis
+            'papis-joplin = vew.papis.joplin:joplin',
         ],
         # 'virtualenvwrapper.get_env_details': ['vew = vew.__main__:stub'],
         # 'virtualenvwrapper.initialize': ['vew = vew.__main__:stub'],
