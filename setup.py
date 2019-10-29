@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from setuptools import setup, find_packages
 
@@ -50,6 +50,7 @@ setup(
         'console_scripts': [
             'vew = vew.__main__:main',
             'vew_hugo = vew.hugo.__main__:main',
+            'vew_papis = vew.papis.__main__:cli',
         ],
         # 'virtualenvwrapper.get_env_details': ['vew = vew.__main__:stub'],
         # 'virtualenvwrapper.initialize': ['vew = vew.__main__:stub'],
