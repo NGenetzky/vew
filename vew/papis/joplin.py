@@ -5,38 +5,70 @@ papis-short-help: joplin help
 import logging
 import json
 from datetime import datetime
+from enum import Enum
 
 import click
 
 import papis.cli
-# import papis.config
+import papis.config
 import papis.commands.add
 
 from vew.util import logging_setup, PACKAGE_NAME
 
 LOG = logging.getLogger(__name__)
 
+
+class JoplinType(Enum):
+    note = 1
+
+
 _TYPE_NOTE = 1
 _TYPE_TO_STR = {
     _TYPE_NOTE: 'note',
 }
 
-
-def _papis_config_from_data(data):
-    config = {}
-    joplin_type = data.get('joplin_type_', None)
-    if joplin_type in _TYPE_TO_STR:
-        config['file-name'] = '{}'.format(
-            _TYPE_TO_STR[joplin_type]
-        )
-    if 'uuid' in data:
-        config['add-name'] = '{doc[uuid]}'
-    return config
+# def _papis_config_from_data(data):
+#     config = {}
+#     joplin_type = data.get('joplin_type_', None)
+#     if joplin_type in _TYPE_TO_STR:
+#         config['file-name'] = '{}'.format(
+#             _TYPE_TO_STR[joplin_type]
+#         )
+#     if 'uuid' in data:
+#         config['add-name'] = '{doc[uuid]}'
+#     return config
 
 
 def _papis_add_dryrun(**kwargs):
     LOG.info('papis add ({})'.format(kwargs))
 
+
+class VewPapisJopin(object):
+    def __init__(self, context=None, commands=None):
+        self._default_settings = {}
+        self._context = context if context else {}
+
+    def init(self):
+        papsis.config.reset_configuration
+        self._register_default_settings()
+
+    def _register_default_settings(self):
+        if 0 < len(self._default_settings):
+            return
+        self._default_settings['settings'] = {
+            'default-library': __name__
+        }
+        self._default_settings[__name__] = {
+            # 'library': 'vew.joplin', # TODO
+            'dir': './.vew/joplin',
+            'add-name': '{doc[uuid]}',
+            'file-name': '{doc[uuid]}',
+
+        }
+        papis.config.register_default_settings(self._default_settings)
+
+    def add(self, **kwargs):
+        self._register_default_settings()
 
 def _joplin_time_to_date(joplin_time):
     time_in_s = int(joplin_time) / 1000
@@ -81,6 +113,8 @@ def joplin():
     """ VEW Papis Joplin
     """
     logging_setup()
+    papis_joplin = VewPapisJopin()
+    papis_joplin.init()
     # LOG.info('joplin')
 
 
@@ -93,15 +127,22 @@ def add(
     logging_setup()
     # LOG.info(kwargs)
 
-    dryrun = False
-    papis_add = papis.commands.add.cli.bypassed
-    if dryrun:
-        papis_add = _papis_add_dryrun
-
     # these 3 lines are from papis:
     data = dict()
     for data_set in set_list:
         data[data_set[0]] = data_set[1]
+
+    papis_joplin = VewPapisJopin(
+        context={
+            'library': papis.config.get_lib(),
+            'kwargs': kwargs,
+            'data': data,
+        },
+        commands={
+            # 'add': papis.commands.add.cli.bypassed
+        }
+    )
+    papis_joplin.init()
 
     for doc_file in files:
         doc_args = dict(kwargs)
@@ -112,16 +153,7 @@ def add(
         for key in doc_data:
             doc_args['set_list'].append((key, doc_data[key]))
 
-        doc_config = _papis_config_from_data(doc_data)
-        config_to_arg = {
-            'file-name': 'file_name',
-            'add-name': 'name',
-        }
-        for c, a in config_to_arg.items():
-            if c in doc_config:
-                doc_args[a] = doc_config[c]
-
-        papis_add(**doc_args)
+        papis_joplin.add(**doc_args)
 
 
 def _main():
