@@ -5,6 +5,7 @@ papis-short-help: joplin help
 import logging
 import json
 from datetime import datetime
+from enum import Enum
 
 import click
 
@@ -17,10 +18,14 @@ from vew.util import logging_setup, PACKAGE_NAME
 
 LOG = logging.getLogger(__name__)
 
-_TYPE_NOTE = 1
-_TYPE_TO_STR = {
-    _TYPE_NOTE: 'note',
-}
+
+class JoplinType(Enum):
+    note = 1
+    folder = 2
+    _unknown = 3 # TODO
+    resource = 4
+    tag = 5
+    notetag = 6
 
 
 def _joplin_default_settings(prefix):
@@ -51,10 +56,6 @@ def joplin_data_filter(data_out, data_in):
     # required:
     data_out['uuid'] = data_in['id']
 
-    joplin_type = int(data_in['type_'])
-    if joplin_type in _TYPE_TO_STR:
-        data_out['joplin_type_str'] = _TYPE_TO_STR[joplin_type]
-
     data_out['title'] = data_in['title']
     author = data_in.get('author', '')
     if author != '':
@@ -65,6 +66,8 @@ def joplin_data_filter(data_out, data_in):
     )
 
     prefix = 'joplin_'
+    joplin_type = JoplinType(data_in['type_'])
+    data_out['{}type_str'.format(prefix)] = joplin_type.name
     for key in ['id', 'parent_id', 'type_', 'user_created_time', 'user_updated_time']:
         if key not in data_in:
             continue
@@ -122,7 +125,7 @@ def add(
         for key in doc_data:
             doc_args['set_list'].append((key, doc_data[key]))
 
-
+        doc_args['directory'] = doc_data['joplin_type_str']
         papis_add(**doc_args)
 
 
