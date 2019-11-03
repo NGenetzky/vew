@@ -4,6 +4,7 @@ papis-short-help: joplin help
 """
 import logging
 import json
+import os
 from datetime import datetime
 from enum import Enum
 
@@ -73,17 +74,37 @@ def joplin_data_filter(data_out, data_in):
             continue
         data_out[prefix + key] = data_in[key]
 
+class JoplinData(object):
+    def __init__(self, path):
+        self._path = path
+        self._data = {}
+        self._jdata = {}
+        self._files = [path]
+        self._type = None
 
-def joplin_data(data_in, filename):
-    data_out = dict(data_in)
+    def load(self):
+        with open(self._path) as file_ptr:
+            self._jdata = json.load(file_ptr)
+        self._type = JoplinType(self._jdata['type_'])
 
-    jdata = {}
-    with open(filename) as file_ptr:
-        jdata = json.load(file_ptr)
-    joplin_data_filter(data_out, jdata)
+        joplin_data_filter(self._data, self._jdata)
 
-    LOG.info('{} -> {}'.format(filename, data_out))
-    return data_out
+        if self._type == JoplinType.resource:
+            self._files = [self._path_to_resource(self._jdata), self._path]
+
+    @property
+    def data(self):
+        LOG.info('{} -> {}'.format(self._path, self._data))
+        return self._data
+
+    @property
+    def files(self):
+        return self._files
+
+    def _path_to_resource(self, resource_data):
+        root = os.path.dirname(self._path)
+        resource_name = '{id}.{file_extension}'.format(**resource_data)
+        return os.path.join( root, 'resources', resource_name)
 
 
 @click.group()
@@ -118,14 +139,19 @@ def add(
 
     for doc_file in files:
         doc_args = dict(kwargs)
-        doc_args['files'] = [doc_file]
-        doc_data = joplin_data(data, doc_file)
+        doc_data = dict(data)
 
+        joplin_data = JoplinData(doc_file)
+        joplin_data.load()
+
+        doc_data.update(joplin_data.data)
         doc_args['set_list'] = []
         for key in doc_data:
             doc_args['set_list'].append((key, doc_data[key]))
 
+        doc_args['files'] = joplin_data.files
         doc_args['directory'] = doc_data['joplin_type_str']
+
         papis_add(**doc_args)
 
 
