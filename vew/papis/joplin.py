@@ -15,8 +15,9 @@ import papis.config
 import papis.api
 import papis.commands.add
 
-from vew.util import logging_setup, PACKAGE_NAME
+from vew.util import logging_setup
 
+NAME = __name__
 LOG = logging.getLogger(__name__)
 
 
@@ -41,8 +42,17 @@ def _joplin_default_settings(prefix):
 
 # TODO: This doesn't seem to be working
 papis.config.register_default_settings(
-    _joplin_default_settings(__name__)
+    _joplin_default_settings(NAME)
 )
+
+
+def _joplin_get_libs():
+    joplin_libs = {
+        '.': NAME,
+        'default': NAME,
+    }
+    return joplin_libs
+
 
 def _papis_add_dryrun(**kwargs):
     LOG.info('papis add ({})'.format(kwargs))
@@ -114,8 +124,10 @@ def joplin():
     """
     logging_setup()
     # LOG.info('joplin')
-    LOG.info('get_lib() -> {}'.format(papis.api.get_libraries()))
-    papis.config.set_lib(__name__)
+    # LOG.info('get_lib() -> {}'.format(papis.api.get_libraries()))
+
+    libs = _joplin_get_libs()
+    papis.config.set_lib(libs['default'])
 
 
 @papis.cli.bypass(joplin, papis.commands.add.cli, "add")
@@ -138,11 +150,23 @@ def add(
         data[data_set[0]] = data_set[1]
 
     for doc_file in files:
+        if not doc_file.endswith('.json'):
+            LOG.warning("Skipping non JSON file ('{}')".format(doc_file))
+            continue
+
         doc_args = dict(kwargs)
         doc_data = dict(data)
 
         joplin_data = JoplinData(doc_file)
-        joplin_data.load()
+        try:
+            joplin_data.load()
+        # except json.decoder.JSONDecodeError as excp:
+        except Exception as excp:
+            LOG.error(
+                "JoplinData('{}').load() failed with excp: {}".format(doc_file, excp))
+            LOG.warning("Skipping file ('{}')".format(doc_file))
+            continue
+
 
         doc_data.update(joplin_data.data)
         doc_args['set_list'] = []
@@ -156,6 +180,11 @@ def add(
 
 
 def _main():
+    global NAME
+    global LOG
+    NAME = 'vew.papis.joplin'
+    LOG = logging.getLogger(NAME)
+
     import papis.commands.default
     papis.commands.default.run()
 
